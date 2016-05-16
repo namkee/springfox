@@ -184,7 +184,13 @@ public abstract class ModelMapper {
           maybeAddEnumValues(itemTypeProperty(modelRef.itemModel().get()), modelRef.getAllowableValues()));
     } else if (modelRef.isMap()) {
       String itemType = modelRef.getItemType();
-      responseProperty = new MapProperty(property(itemType));
+      MapProperty mapProperty = new MapProperty(property(itemType));
+
+      //for nested Map model (Map<String, Map<..>> , or Map<String, List<>> )
+      if (isNestedCollectionOrMap(modelRef.itemModel())) {
+        mapProperty.additionalProperties(modelRefToProperty(modelRef.itemModel().get()));
+      }
+      responseProperty = mapProperty;
     } else {
       responseProperty = property(modelRef.getType());
     }
@@ -192,6 +198,10 @@ public abstract class ModelMapper {
     maybeAddEnumValues(responseProperty, modelRef.getAllowableValues());
 
     return responseProperty;
+  }
+
+  private static boolean isNestedCollectionOrMap(Optional<ModelReference> optional) {
+    return optional != null && optional.isPresent() && (optional.get().isCollection() || optional.get().isMap());
   }
 
   protected Map<String, Model> modelsFromApiListings(Multimap<String, ApiListing> apiListings) {
